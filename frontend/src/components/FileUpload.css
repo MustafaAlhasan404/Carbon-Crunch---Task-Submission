@@ -1,0 +1,231 @@
+.file-upload-container {
+  margin-bottom: 40px;
+  animation: fadeInUp 0.8s;
+}
+
+.file-upload-container h2 {
+  margin-bottom: 15px;
+  color: var(--primary-color);
+  font-size: 1.8rem;
+  font-weight: 600;
+  text-align: center;
+  position: relative;
+  display: inline-block;
+  padding-bottom: 10px;
+}
+
+.file-upload-container h2::after {
+  content: '';
+  position: absolute;
+  width: 50%;
+  height: 3px;
+  bottom: 0;
+  left: 25%;
+  background: linear-gradient(to right, transparent, var(--primary-color), transparent);
+  border-radius: 3px;
+}
+
+.file-upload-info {
+  margin-bottom: 25px;
+  color: var(--text-light);
+  font-size: 1rem;
+  text-align: center;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.drop-area {
+  border: 2px dashed #ccc;
+  border-radius: var(--border-radius);
+  padding: 40px;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-speed);
+  margin-bottom: 25px;
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background-color: rgba(248, 249, 250, 0.7);
+  overflow: hidden;
+}
+
+.drop-area::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at center, rgba(10, 138, 112, 0.05) 0%, transparent 70%);
+  z-index: -1;
+}
+
+.drop-area:hover {
+  border-color: var(--primary-color);
+  background-color: rgba(10, 138, 112, 0.05);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.dragging {
+  border-color: var(--primary-color);
+  background-color: rgba(10, 138, 112, 0.1);
+  box-shadow: var(--shadow-lg);
+  transform: scale(1.02);
+}
+
+.has-file {
+  background-color: rgba(10, 138, 112, 0.05);
+  border-color: var(--primary-color);
+  border-style: solid;
+}
+
+.upload-icon {
+  color: var(--text-light);
+  transition: transform var(--transition-speed);
+}
+
+.drop-area:hover .upload-icon {
+  transform: translateY(-5px);
+}
+
+.upload-icon svg {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 15px;
+  stroke: var(--primary-color);
+  stroke-width: 1.5;
+  fill: none;
+  transition: all var(--transition-speed);
+}
+
+.drop-area:hover .upload-icon svg {
+  stroke-width: 2;
+}
+
+.upload-icon p {
+  font-size: 1.1rem;
+  margin: 10px 0 0;
+  color: var(--text-color);
+  font-weight: 500;
+}
+
+.file-info {
+  width: 100%;
+  padding: 15px;
+  background-color: rgba(10, 138, 112, 0.1);
+  border-radius: var(--border-radius);
+  animation: fadeIn 0.3s;
+}
+
+.file-name {
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: var(--primary-color);
+  font-size: 1.1rem;
+  word-break: break-all;
+  position: relative;
+  padding-left: 24px;
+}
+
+.file-name::before {
+  content: "📄";
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.file-size {
+  color: var(--text-light);
+  margin: 0;
+  font-size: 0.9rem;
+  padding-left: 24px;
+}
+
+.analyze-button {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 14px 28px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  width: 100%;
+  transition: all var(--transition-speed);
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  text-transform: uppercase;
+}
+
+.analyze-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: all 0.5s;
+}
+
+.analyze-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.analyze-button:hover::before {
+  left: 100%;
+}
+
+.analyze-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  opacity: 0.8;
+  box-shadow: none;
+  transform: none;
+}
+
+.analyze-button:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: var(--shadow-sm);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .drop-area {
+    padding: 25px;
+    min-height: 180px;
+  }
+  
+  .upload-icon svg {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .upload-icon p {
+    font-size: 1rem;
+  }
+  
+  .analyze-button {
+    padding: 12px 20px;
+    font-size: 1rem;
+  }
+} 

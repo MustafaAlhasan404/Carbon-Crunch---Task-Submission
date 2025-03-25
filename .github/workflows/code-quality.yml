@@ -1,0 +1,186 @@
+name: Carbon Crunch Code Quality Check
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - '**.js'
+      - '**.jsx'
+      - '**.py'
+  push:
+    branches: [main, master]
+    paths:
+      - '**.js'
+      - '**.jsx'
+      - '**.py'
+
+jobs:
+  analyze-code:
+    name: Analyze Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v35
+        with:
+          files: |
+            **.js
+            **.jsx
+            **.py
+            
+      - name: Run Carbon Crunch on changed files
+        id: analyze
+        if: steps.changed-files.outputs.any_changed == 'true'
+        run: |
+          mkdir -p ./reports
+          
+          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+            # Check if file still exists (in case it was deleted)
+            if [ -f "$file" ]; then
+              file_ext="${file##*.}"
+              if [[ "$file_ext" == "js" || "$file_ext" == "jsx" || "$file_ext" == "py" ]]; then
+                echo "Analyzing file: $file"
+                # Run the analyzer and save output to a JSON file
+                python -c "
+import sys, json
+sys.path.append('./backend')
+from app.analyzers import analyze_javascript, analyze_python
+try:
+    if '$file_ext' in ['js', 'jsx']:
+        result = analyze_javascript('$file')
+    else:
+        result = analyze_python('$file')
+    print(json.dumps(result))
+    with open('./reports/$(basename $file).json', 'w') as f:
+        json.dump(result, f)
+except Exception as e:
+    print(f'Error analyzing {file}: {str(e)}')
+                " >> ./reports/output.log
+              fi
+            fi
+          done
+          
+          echo "summary=Reports generated in ./reports/" >> $GITHUB_OUTPUT
+          
+      - name: Create summary
+        if: steps.analyze.outcome == 'success'
+        run: |
+          echo "## Carbon Crunch Code Quality Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Loop through all JSON reports and create a summary
+          for report in ./reports/*.json; do
+            if [ -f "$report" ]; then
+              filename=$(basename "$report" .json)
+              echo "### File: $filename" >> $GITHUB_STEP_SUMMARY
+              
+              # Extract score and recommendations
+              score=$(jq -r '.overall_score' "$report")
+              echo "**Overall Score:** $score / 100" >> $GITHUB_STEP_SUMMARY
+              
+              echo "**Breakdown:**" >> $GITHUB_STEP_SUMMARY
+              echo "- Naming: $(jq -r '.breakdown.naming' "$report") / 10" >> $GITHUB_STEP_SUMMARY
+              echo "- Modularity: $(jq -r '.breakdown.modularity' "$report") / 20" >> $GITHUB_STEP_SUMMARY
+              echo "- Comments: $(jq -r '.breakdown.comments' "$report") / 20" >> $GITHUB_STEP_SUMMARY
+              echo "- Formatting: $(jq -r '.breakdown.formatting' "$report") / 15" >> $GITHUB_STEP_SUMMARY
+              echo "- Reusability: $(jq -r '.breakdown.reusability' "$report") / 15" >> $GITHUB_STEP_SUMMARY
+              echo "- Best Practices: $(jq -r '.breakdown.best_practices' "$report") / 20" >> $GITHUB_STEP_SUMMARY
+              
+              echo "**Recommendations:**" >> $GITHUB_STEP_SUMMARY
+              jq -r '.recommendations[]' "$report" | while read -r line; do
+                echo "- $line" >> $GITHUB_STEP_SUMMARY
+              done
+              
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          
+      - name: Add PR comment
+        if: github.event_name == 'pull_request' && steps.analyze.outcome == 'success'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Read all report files
+            const reportsDir = path.join(process.env.GITHUB_WORKSPACE, 'reports');
+            const files = fs.readdirSync(reportsDir).filter(f => f.endsWith('.json'));
+            
+            if (files.length === 0) {
+              return;
+            }
+            
+            let comment = '## Carbon Crunch Code Quality Analysis\n\n';
+            
+            // Process each report file
+            for (const file of files) {
+              const reportPath = path.join(reportsDir, file);
+              const reportContent = fs.readFileSync(reportPath, 'utf8');
+              const report = JSON.parse(reportContent);
+              
+              const filename = file.replace('.json', '');
+              comment += `### File: ${filename}\n`;
+              
+              // Add emoji based on score
+              let scoreEmoji = '🔴';
+              if (report.overall_score >= 80) scoreEmoji = '🟢';
+              else if (report.overall_score >= 60) scoreEmoji = '🟡';
+              
+              comment += `**Overall Score:** ${scoreEmoji} ${report.overall_score}/100\n\n`;
+              
+              // Add breakdown
+              comment += '**Score Breakdown:**\n';
+              Object.entries(report.breakdown).forEach(([category, score]) => {
+                const maxScore = {
+                  naming: 10,
+                  modularity: 20,
+                  comments: 20,
+                  formatting: 15,
+                  reusability: 15,
+                  best_practices: 20
+                }[category] || 0;
+                
+                // Format category name
+                const categoryName = category
+                  .replace(/_/g, ' ')
+                  .replace(/\b\w/g, l => l.toUpperCase());
+                
+                comment += `- ${categoryName}: ${score}/${maxScore}\n`;
+              });
+              
+              // Add recommendations
+              if (report.recommendations && report.recommendations.length > 0) {
+                comment += '\n**Recommendations:**\n';
+                report.recommendations.forEach(rec => {
+                  comment += `- ${rec}\n`;
+                });
+              }
+              
+              comment += '\n---\n\n';
+            }
+            
+            comment += 'Generated by [Carbon Crunch](https://github.com/YOUR_USERNAME/carbon-crunch) 🌱';
+            
+            // Post comment on PR
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            }); 
