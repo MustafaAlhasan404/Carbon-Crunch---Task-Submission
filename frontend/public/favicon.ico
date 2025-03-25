@@ -1,1 +1,5 @@
- 
+/* 
+Favicon would be a binary file, so we can't create it directly with text.
+Please replace this with a proper favicon.ico file showing a green leaf or
+eco-friendly icon that aligns with the "Carbon Crunch" theme.
+*/ 
